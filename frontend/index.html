@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>🏛️ منظومة النيابة العامة</h2>
+
+<input id="email" placeholder="email">
+<input id="password" type="password" placeholder="password">
+
+<button onclick="login()">دخول</button>
+
+<p id="result"></p>
+
+<script>
+
+const API = "PUT_YOUR_RENDER_URL_HERE";
+
+function login(){
+  fetch(API + "/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    localStorage.setItem("role", data.user.role);
+    document.getElementById("result").innerText =
+      "Role: " + data.user.role;
+  });
+}
+
+</script>
+
+</body>
+</html>
