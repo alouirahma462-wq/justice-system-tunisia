@@ -8,19 +8,16 @@ const app = express();
 
 app.use(express.json());
 
+// ✅ CORS مفتوح للتطوير (يشتغل مع أي React)
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://coreui-free-react-admin-template-five.vercel.app"
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
-// Preflight fix
+// preflight
 app.options("*", cors());
 
 /* ================= HEALTH CHECK ================= */
@@ -33,7 +30,13 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ================= FAKE USERS DB ================= */
+/* ================= TEST ROUTE ================= */
+
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
+});
+
+/* ================= USERS DB (DEMO) ================= */
 
 const users = [
   {
@@ -123,13 +126,13 @@ app.get("/dashboard", auth, (req, res) => {
   });
 });
 
-/* ================= 404 ================= */
+/* ================= 404 HANDLER ================= */
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-/* ================= SERVER START (RENDER READY) ================= */
+/* ================= START SERVER ================= */
 
 const PORT = process.env.PORT || 10000;
 
