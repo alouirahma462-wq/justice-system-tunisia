@@ -4,21 +4,36 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 
-// 🔐 CORS مضبوط للـ production
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+/* ================= MIDDLEWARE ================= */
 
+// CORS (حل نهائي لمشاكل الاتصال)
+app.use(cors());
+
+// JSON body parser
 app.use(express.json());
+
+// حل مشاكل OPTIONS (Preflight)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+/* ================= ROUTES ================= */
 
 // 🟢 Health Check
 app.get("/", (req, res) => {
   res.json({ status: "⚖️ Justice System Running" });
 });
 
-// 👤 Users DB (مرحلة تجريبية)
+/* ================= FAKE DB ================= */
+
 const users = [
   {
     id: 1,
@@ -29,7 +44,8 @@ const users = [
   }
 ];
 
-// 🔐 LOGIN
+/* ================= LOGIN ================= */
+
 app.post("/login", (req, res) => {
   try {
     const { email, password } = req.body;
@@ -39,7 +55,7 @@ app.post("/login", (req, res) => {
     }
 
     const user = users.find(
-      u => u.email === email && u.password === password
+      (u) => u.email === email && u.password === password
     );
 
     if (!user) {
@@ -56,7 +72,7 @@ app.post("/login", (req, res) => {
       { expiresIn: "1d" }
     );
 
-    return res.json({
+    res.json({
       token,
       user: {
         id: user.id,
@@ -67,11 +83,12 @@ app.post("/login", (req, res) => {
     });
 
   } catch (err) {
-    return res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error" });
   }
 });
 
-// 📊 DASHBOARD (protected)
+/* ================= DASHBOARD (PROTECTED) ================= */
+
 app.get("/dashboard", (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -87,7 +104,7 @@ app.get("/dashboard", (req, res) => {
       process.env.JWT_SECRET || "dev_secret"
     );
 
-    return res.json({
+    res.json({
       totalCases: 120,
       closedCases: 70,
       pendingCases: 50,
@@ -96,13 +113,15 @@ app.get("/dashboard", (req, res) => {
     });
 
   } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
+    res.status(401).json({ error: "Invalid token" });
   }
 });
 
-// 🚀 START SERVER (Render compatible)
+/* ================= START SERVER ================= */
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("⚖️ Justice System Running on port", PORT);
 });
+
