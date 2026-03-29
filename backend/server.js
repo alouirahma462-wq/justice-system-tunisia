@@ -1,43 +1,13 @@
 const express = require("express");
 const cors = require("cors");
-const jwt = require("jsonwebtoken");
 
 const app = express();
+const PORT = process.env.PORT || 10000;
 
-/* ================= MIDDLEWARE ================= */
-
+app.use(cors());
 app.use(express.json());
 
-// ✅ CORS مفتوح للتطوير (يشتغل مع أي React)
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  })
-);
-
-// preflight
-app.options("*", cors());
-
-/* ================= HEALTH CHECK ================= */
-
-app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "⚖️ Justice System Running",
-    server: "OK",
-    time: new Date().toISOString()
-  });
-});
-
-/* ================= TEST ROUTE ================= */
-
-app.get("/health", (req, res) => {
-  res.json({ ok: true });
-});
-
-/* ================= USERS DB (DEMO) ================= */
-
+/* ================= USERS ================= */
 const users = [
   {
     id: 1,
@@ -48,95 +18,43 @@ const users = [
   }
 ];
 
-/* ================= LOGIN ================= */
+/* ================= ROUTES ================= */
 
-app.post("/login", (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "missing credentials" });
-    }
-
-    const user = users.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (!user) {
-      return res.status(401).json({ error: "wrong credentials" });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        courtCode: user.courtCode
-      },
-      process.env.JWT_SECRET || "dev_secret",
-      { expiresIn: "1d" }
-    );
-
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        courtCode: user.courtCode
-      }
-    });
-  } catch (err) {
-    return res.status(500).json({ error: "server error" });
-  }
-});
-
-/* ================= AUTH MIDDLEWARE ================= */
-
-function auth(req, res, next) {
-  try {
-    const header = req.headers.authorization;
-
-    if (!header) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const token = header.split(" ")[1];
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "dev_secret"
-    );
-
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-}
-
-/* ================= DASHBOARD ================= */
-
-app.get("/dashboard", auth, (req, res) => {
+// test route
+app.get("/", (req, res) => {
   res.json({
-    totalCases: 120,
-    closedCases: 70,
-    pendingCases: 50,
-    role: req.user.role,
-    courtCode: req.user.courtCode
+    status: "⚖️ Justice System Running",
+    server: "OK",
+    time: new Date()
   });
 });
 
-/* ================= 404 HANDLER ================= */
+// LOGIN ROUTE (IMPORTANT)
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
 
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  const user = users.find(
+    (u) => u.email === email && u.password === password
+  );
+
+  if (!user) {
+    return res.status(401).json({
+      error: "بيانات الدخول غير صحيحة"
+    });
+  }
+
+  const token = "fake-jwt-token-" + Date.now();
+
+  res.json({
+    token,
+    user
+  });
 });
 
-/* ================= START SERVER ================= */
-
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, "0.0.0.0", () => {
+/* ================= START ================= */
+app.listen(PORT, () => {
   console.log("⚖️ Justice System Running on port", PORT);
 });
+
+
 
