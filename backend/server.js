@@ -6,28 +6,17 @@ const app = express();
 
 /* ================= MIDDLEWARE ================= */
 
-// CORS (حل نهائي لمشاكل الاتصال)
-app.use(cors());
-
-// JSON body parser
 app.use(express.json());
 
-// حل مشاكل OPTIONS (Preflight)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+// CORS مضبوط للـ production
+app.use(cors({
+  origin: "https://coreui-free-react-admin-template-five.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
+/* ================= HEALTH CHECK ================= */
 
-  next();
-});
-
-/* ================= ROUTES ================= */
-
-// 🟢 Health Check
 app.get("/", (req, res) => {
   res.json({ status: "⚖️ Justice System Running" });
 });
@@ -87,7 +76,7 @@ app.post("/login", (req, res) => {
   }
 });
 
-/* ================= DASHBOARD (PROTECTED) ================= */
+/* ================= DASHBOARD ================= */
 
 app.get("/dashboard", (req, res) => {
   try {
@@ -117,7 +106,7 @@ app.get("/dashboard", (req, res) => {
   }
 });
 
-/* ================= START SERVER ================= */
+/* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
 
