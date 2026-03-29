@@ -4,24 +4,23 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 
-/* ================= SECURITY + MIDDLEWARE ================= */
+/* ================= MIDDLEWARE ================= */
 
 app.use(express.json());
 
-// ✅ CORS production ready
 app.use(
   cors({
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://your-frontend.vercel.app" // 👈 بدّلها برابط React الحقيقي
+      "https://coreui-free-react-admin-template-five.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
-// ✅ Preflight fix (مهم جدًا لـ Render + React)
+// Preflight fix
 app.options("*", cors());
 
 /* ================= HEALTH CHECK ================= */
@@ -115,7 +114,7 @@ function auth(req, res, next) {
 /* ================= DASHBOARD ================= */
 
 app.get("/dashboard", auth, (req, res) => {
-  return res.json({
+  res.json({
     totalCases: 120,
     closedCases: 70,
     pendingCases: 50,
@@ -124,16 +123,17 @@ app.get("/dashboard", auth, (req, res) => {
   });
 });
 
-/* ================= 404 HANDLER ================= */
+/* ================= 404 ================= */
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-/* ================= START SERVER (RENDER FIXED) ================= */
+/* ================= SERVER START (RENDER READY) ================= */
 
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("⚖️ Justice System Running on port", PORT);
 });
+
