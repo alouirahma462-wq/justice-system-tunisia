@@ -3,21 +3,22 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 
 const app = express();
+
+// 🔐 CORS مضبوط للـ production
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-
 app.use(express.json());
 
-// 🟢 اختبار السيرفر
+// 🟢 Health Check
 app.get("/", (req, res) => {
-  res.json({ status: "Justice System Running" });
+  res.json({ status: "⚖️ Justice System Running" });
 });
 
-// 👤 مستخدم تجريبي (مرحلة أولى فقط)
+// 👤 Users DB (مرحلة تجريبية)
 const users = [
   {
     id: 1,
@@ -28,57 +29,80 @@ const users = [
   }
 ];
 
-// 🔐 تسجيل الدخول
+// 🔐 LOGIN
 app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-
-  const user = users.find(
-    u => u.email === email && u.password === password
-  );
-
-  if (!user) {
-    return res.status(401).json({ error: "wrong credentials" });
-  }
-
-  const token = jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-      courtCode: user.courtCode
-    },
-    process.env.JWT_SECRET || "dev_secret",
-    { expiresIn: "1d" }
-  );
-
-  res.json({ token, user });
-});
-
-// 📊 داشبورد بسيط
-app.get("/dashboard", (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ error: "No token" });
-  }
-
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    const { email, password } = req.body;
 
-    res.json({
-      totalCases: 120,
-      closedCases: 70,
-      role: user.role
+    if (!email || !password) {
+      return res.status(400).json({ error: "missing credentials" });
+    }
+
+    const user = users.find(
+      u => u.email === email && u.password === password
+    );
+
+    if (!user) {
+      return res.status(401).json({ error: "wrong credentials" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        courtCode: user.courtCode
+      },
+      process.env.JWT_SECRET || "dev_secret",
+      { expiresIn: "1d" }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        courtCode: user.courtCode
+      }
     });
 
   } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
+    return res.status(500).json({ error: "server error" });
   }
 });
 
-// 🚀 تشغيل السيرفر
-const PORT = process.env.PORT || 10000;
+// 📊 DASHBOARD (protected)
+app.get("/dashboard", (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-app.listen(PORT, () => {
-  console.log("Justice System Running on port", PORT);
+    if (!authHeader) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const user = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "dev_secret"
+    );
+
+    return res.json({
+      totalCases: 120,
+      closedCases: 70,
+      pendingCases: 50,
+      role: user.role,
+      courtCode: user.courtCode
+    });
+
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
 });
 
+// 🚀 START SERVER (Render compatible)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("⚖️ Justice System Running on port", PORT);
+});
