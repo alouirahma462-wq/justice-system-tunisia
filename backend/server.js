@@ -4,10 +4,14 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+/* ================= MIDDLEWARE ================= */
+
+// 🔥 مهم: CORS مفتوح بالكامل للتجربة
 app.use(cors());
 app.use(express.json());
 
 /* ================= USERS ================= */
+
 const users = [
   {
     id: 1,
@@ -18,20 +22,28 @@ const users = [
   }
 ];
 
-/* ================= ROUTES ================= */
+/* ================= TEST ================= */
 
-// test route
 app.get("/", (req, res) => {
   res.json({
     status: "⚖️ Justice System Running",
     server: "OK",
-    time: new Date()
+    time: new Date().toISOString()
   });
 });
 
-// LOGIN ROUTE (IMPORTANT)
+/* ================= LOGIN ================= */
+
 app.post("/login", (req, res) => {
-  const { email, password } = req.body;
+  console.log("BODY RECEIVED:", req.body); // 🔥 مهم للتشخيص
+
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return res.status(400).json({
+      error: "missing credentials"
+    });
+  }
 
   const user = users.find(
     (u) => u.email === email && u.password === password
@@ -39,22 +51,24 @@ app.post("/login", (req, res) => {
 
   if (!user) {
     return res.status(401).json({
-      error: "بيانات الدخول غير صحيحة"
+      error: "wrong credentials"
     });
   }
 
-  const token = "fake-jwt-token-" + Date.now();
+  const token = "token-" + Date.now();
 
-  res.json({
+  return res.json({
     token,
     user
   });
 });
 
 /* ================= START ================= */
-app.listen(PORT, () => {
+
+app.listen(PORT, "0.0.0.0", () => {
   console.log("⚖️ Justice System Running on port", PORT);
 });
+
 
 
 
