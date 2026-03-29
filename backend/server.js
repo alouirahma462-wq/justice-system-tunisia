@@ -4,24 +4,37 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 
-/* ================= MIDDLEWARE ================= */
+/* ================= SECURITY + MIDDLEWARE ================= */
 
 app.use(express.json());
 
-// CORS مضبوط للـ production
-app.use(cors({
-  origin: "https://coreui-free-react-admin-template-five.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+// ✅ CORS production ready
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://your-frontend.vercel.app" // 👈 بدّلها برابط React الحقيقي
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
+
+// ✅ Preflight fix (مهم جدًا لـ Render + React)
+app.options("*", cors());
 
 /* ================= HEALTH CHECK ================= */
 
 app.get("/", (req, res) => {
-  res.json({ status: "⚖️ Justice System Running" });
+  res.status(200).json({
+    status: "⚖️ Justice System Running",
+    server: "OK",
+    time: new Date().toISOString()
+  });
 });
 
-/* ================= FAKE DB ================= */
+/* ================= FAKE USERS DB ================= */
 
 const users = [
   {
@@ -61,7 +74,7 @@ app.post("/login", (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user.id,
@@ -70,47 +83,57 @@ app.post("/login", (req, res) => {
         courtCode: user.courtCode
       }
     });
-
   } catch (err) {
-    res.status(500).json({ error: "server error" });
+    return res.status(500).json({ error: "server error" });
   }
 });
 
-/* ================= DASHBOARD ================= */
+/* ================= AUTH MIDDLEWARE ================= */
 
-app.get("/dashboard", (req, res) => {
+function auth(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
+    const header = req.headers.authorization;
 
-    if (!authHeader) {
+    if (!header) {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = header.split(" ")[1];
 
-    const user = jwt.verify(
+    const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "dev_secret"
     );
 
-    res.json({
-      totalCases: 120,
-      closedCases: 70,
-      pendingCases: 50,
-      role: user.role,
-      courtCode: user.courtCode
-    });
-
+    req.user = decoded;
+    next();
   } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
+    return res.status(401).json({ error: "Invalid token" });
   }
+}
+
+/* ================= DASHBOARD ================= */
+
+app.get("/dashboard", auth, (req, res) => {
+  return res.json({
+    totalCases: 120,
+    closedCases: 70,
+    pendingCases: 50,
+    role: req.user.role,
+    courtCode: req.user.courtCode
+  });
 });
 
-/* ================= START ================= */
+/* ================= 404 HANDLER ================= */
 
-const PORT = process.env.PORT || 3000;
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
-app.listen(PORT, () => {
+/* ================= START SERVER (RENDER FIXED) ================= */
+
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, "0.0.0.0", () => {
   console.log("⚖️ Justice System Running on port", PORT);
 });
-
